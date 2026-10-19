@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مقترح تحسين تخزين بيانات FuelLeap</title>
+<meta name="description" content="مقترح لتحسين تخزين البيانات في السحابة والمحطة لمنصة FuelLeap لمراقبة محطات الوقود.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F6F8; --panel: #FFFFFF; --ink: #142230; --muted: #5B6B7A; --line: #DDE3E9; --grid: #E8ECF0;
+  --navy: #12324F; --navy-2: #1B4467; --band-ink: #FFFFFF; --band-muted: #B4C8DB;
+  --accent: #1F6FD1; --accent-soft: rgba(31,111,209,.10);
+  --grey: #A3AEB9; --grey-2: #CDD4DB; --good: #1E8E5A; --bad: #C0392B; --ref: #5B6B7A;
+  --shadow: 0 1px 2px rgba(20,34,48,.05), 0 4px 16px rgba(20,34,48,.05);
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E151C; --panel: #151F29; --ink: #E7EDF3; --muted: #93A3B3; --line: #26333F; --grid: #1F2B36;
+    --navy: #0B2236; --navy-2: #12324F; --band-muted: #8FA9C2;
+    --accent: #5EA0F0; --accent-soft: rgba(94,160,240,.14);
+    --grey: #6B7A89; --grey-2: #3C4955; --good: #4CC38A; --bad: #F07167; --ref: #93A3B3;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans Arabic", Tahoma, "Segoe UI", sans-serif; font-size: 15.5px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+.num { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+header.band { background: linear-gradient(225deg, var(--navy) 0%, var(--navy-2) 100%); color: var(--band-ink); }
+header.band .wrap { padding-top: 36px; padding-bottom: 82px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.eyebrow { font-size: 13px; color: var(--band-muted); font-weight: 600; }
+.lang { font-size: 12.5px; color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
+.lang:hover { background: rgba(255,255,255,.1); }
+h1 { font-weight: 700; font-size: clamp(26px, 3.6vw, 38px); line-height: 1.4; margin: 12px 0 12px; }
+.lede { max-width: 860px; color: #DCE6F0; font-size: 16.5px; margin: 0; line-height: 1.9; }
+.lede b { color: #fff; font-weight: 700; }
+.meta { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; color: var(--band-muted); }
+.meta span::before { content: "•"; margin-left: 8px; color: rgba(255,255,255,.35); }
+.meta span:first-child::before { content: none; }
+
+main .wrap { padding-top: 0; padding-bottom: 48px; display: flex; flex-direction: column; gap: 22px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr)); gap: 14px; margin-top: -58px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; box-shadow: var(--shadow); min-width: 0; }
+.kpi { position: relative; overflow: hidden; }
+.kpi::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--line); }
+.kpi.bad::before { background: var(--bad); } .kpi.good::before { background: var(--good); } .kpi.hero::before { background: var(--accent); }
+.kpi .l { font-size: 13px; color: var(--muted); font-weight: 500; }
+.kpi .v { font-size: 32px; font-weight: 700; line-height: 1.2; margin-top: 8px; display: flex; align-items: baseline; gap: 6px; }
+.kpi .v .num { font-size: 32px; }
+.kpi .v small { font-size: 14px; font-weight: 500; color: var(--muted); }
+.kpi .s { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+.kpi.bad .v .num { color: var(--bad); } .kpi.good .v .num { color: var(--good); }
+.kpi.hero { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 22px; }
+h2 { font-size: 18px; font-weight: 700; margin: 0; line-height: 1.5; }
+.note { font-size: 13.5px; color: var(--muted); margin: 4px 0 16px; line-height: 1.7; }
+.section-title { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); font-weight: 700; margin: 14px 0 -6px; }
+.section-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.chart { position: relative; }
+.chart svg { display: block; direction: ltr; overflow: visible; }
+svg text { font-family: "IBM Plex Sans Arabic", Tahoma, sans-serif; }
+.tick { font-size: 12px; fill: var(--muted); }
+.lbl { font-size: 13px; fill: var(--ink); }
+.lbl-b { font-size: 13px; font-weight: 700; fill: var(--ink); }
+.tip { position: absolute; pointer-events: none; display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.14); padding: 8px 12px; font-size: 13px; white-space: nowrap; z-index: 5; direction: rtl; }
+.tip .h { color: var(--muted); margin-bottom: 4px; }
+.tip .r { display: flex; align-items: center; gap: 8px; }
+.tip .r b { margin-right: auto; padding-right: 16px; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: right; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+td.n, th.n { text-align: left; }
+tr.total td { font-weight: 700; border-top: 1px solid var(--line); }
+.tw { overflow-x: auto; }
+.bar-cell { display: flex; align-items: center; gap: 10px; justify-content: flex-start; direction: ltr; }
+.bar-cell i { display: block; height: 8px; border-radius: 4px; background: var(--accent); opacity: .6; }
+
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.pr { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; background: var(--panel); }
+.pr .k { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.pr b { display: block; font-size: 15px; margin: 10px 0 4px; }
+.pr p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.75; }
+
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 14px; }
+.ph { border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; }
+.ph.now { border: 2px solid var(--accent); background: var(--accent-soft); }
+.ph .t { font-weight: 700; font-size: 15.5px; }
+.ph .w { font-size: 13px; color: var(--muted); margin: 2px 0 10px; }
+.ph ul { margin: 0 0 12px; padding-right: 18px; padding-left: 0; font-size: 13.5px; line-height: 1.9; }
+.ph .res { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13.5px; font-weight: 700; }
+
+footer { color: var(--muted); font-size: 12.5px; }
+footer .wrap { padding-bottom: 32px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  header.band .wrap { padding-top: 24px; padding-bottom: 74px; }
+  .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { padding: 16px; }
+  .kpi .v .num { font-size: 26px; }
+}
+@media print {
+  body { background: #fff; }
+  .card, .pr, .ph { break-inside: avoid; box-shadow: none; }
+  .lang { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="eyebrow">FuelLeap · مقترح تحسين تخزين البيانات</div>
+      <a class="lang" href="../" lang="en">English</a>
+    </div>
+    <h1>مقترح لخفض نمو تخزين البيانات في السحابة بأكثر من ‎95%‎ دون فقدان أي ميزة</h1>
+    <p class="lede" id="lede">جارٍ التحميل…</p>
+    <div class="meta"><span>تقديرات للمحطة الواحدة مبنية على أرقام التشغيل الفعلي</span><span>السحابة: Supabase PostgreSQL</span><span>المحطة: SQLite</span><span>أكتوبر 2026</span></div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <section class="kpis" id="kpis"></section>
+
+    <div class="grid2">
+      <section class="card">
+        <h2>كل نوع من البيانات يمكن أن ينخفض بأكثر من ‎98%‎</h2>
+        <p class="note">النمو اليومي لكل محطة بالميجابايت، قبل المقترح وبعده.</p>
+        <div class="legend"><span><i class="sw" style="background:var(--grey)"></i>الوضع الحالي</span><span><i class="sw" style="background:var(--accent)"></i>مع المقترح</span></div>
+        <div class="chart" id="c-items"></div>
+      </section>
+      <section class="card">
+        <h2>تحسين المبرمج خطوة أولى، والمقترح يكمل الطريق</h2>
+        <p class="note">النمو اليومي في السحابة لكل محطة بالميجابايت في كل مرحلة.</p>
+        <div class="chart" id="c-scen"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>عند ‎15‎ محطة، المقترح وحده يبقى ضمن ‎8 GB‎</h2>
+      <p class="note">الحجم السنوي في السحابة حسب عدد المحطات، بمقياس لوغاريتمي. الخط المتقطع هو المساحة المشمولة في Supabase Pro.</p>
+      <div class="legend"><span><i class="sw" style="background:var(--grey)"></i>الوضع الحالي</span><span><i class="sw" style="background:var(--grey-2)"></i>بعد تحسين المبرمج</span><span><i class="sw" style="background:var(--accent)"></i>مع المقترح</span></div>
+      <div class="chart" id="c-proj"></div>
+    </section>
+
+    <div class="section-title">آلية العمل</div>
+    <section class="card">
+      <h2>ستة مبادئ مأخوذة من ممارسات أنظمة SCADA</h2>
+      <p class="note">تُطبَّق على كل نوع من البيانات التي يتعامل معها النظام.</p>
+      <div class="principles" id="principles"></div>
+    </section>
+
+    <div class="grid2">
+      <section class="card">
+        <h2>قاعدة بيانات المحطة: نافذة متحركة بحجم ثابت</h2>
+        <p class="note">مدة الاحتفاظ لكل نوع بيانات داخل المحطة. لا يُحذف أي سجل قبل تأكيد وصوله للسحابة، والسقف الأعلى ‎200 MB‎.</p>
+        <div class="tw"><table id="t-local"><thead><tr><th>البيانات</th><th>الدقة</th><th class="n">الاحتفاظ (يوم)</th><th class="n">الحجم التقديري (MB)</th></tr></thead><tbody></tbody></table></div>
+      </section>
+      <section class="card">
+        <h2>ماذا يُرسل إلى السحابة؟</h2>
+        <p class="note">المحطة تحتفظ بالتفاصيل الكاملة لفترة قصيرة، والسحابة تستقبل النتائج والتغيّرات فقط.</p>
+        <div class="tw"><table id="t-split"><thead><tr><th>البيانات</th><th>ما تستقبله السحابة</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </div>
+
+    <div class="section-title">مسار التنفيذ المقترح</div>
+    <section class="card">
+      <h2>أكثر من ‎70%‎ من التوفير يمكن تحقيقه في اليوم الأول</h2>
+      <p class="note">يبدأ المسار بقياس أحجام الجداول، وينتهي بالتحقق من النتائج خلال ‎7‎ أيام من التشغيل الفعلي.</p>
+      <div class="phases" id="phases"></div>
+    </section>
+  </div>
+</main>
+
+<footer><div class="wrap"><span>أرقام «الوضع الحالي» من قياسات المبرمج أثناء التشغيل الفعلي، وأرقام «مع المقترح» تقديرية (‎180‎ معاملة يومياً، حوالي ‎24‎ مسدساً و‎4‎ خزانات لكل محطة).</span><span>FuelLeap · مقترح تحسين التخزين · أكتوبر 2026</span></div></footer>
+
+<script src="../d3.min.js"></script>
+<script>
+const DATA = {
+  items: [
+    { item: "الرسائل الخام والفهارس والبيانات التشغيلية", short: "الرسائل الخام والتشغيلية", before: 28, after: 0.4 },
+    { item: "قراءات العدادات (Totalizer)", short: "قراءات العدادات", before: 10, after: 0.01 },
+    { item: "قراءات الخزانات", short: "قراءات الخزانات", before: 9, after: 0.1 }
+  ],
+  scenarios: [
+    { id: "current", name: "الوضع الحالي", mbDay: 47, note: "قبل أي تحسين" },
+    { id: "dev", name: "تحسين المبرمج", mbDay: 12.5, note: "متوسط 10 إلى 15" },
+    { id: "plan", name: "المقترح", mbDay: null, note: "مجموع البنود بعد التطبيق" }
+  ],
+  limits: { usedMb: 328, freeMb: 500, proGb: 8, localCapMb: 200, stations: 15 },
+  local: [
+    { data: "المعاملات", res: "كاملة", days: 90, mb: 3 },
+    { data: "إقفالات الورديات", res: "كاملة", days: 90, mb: 1 },
+    { data: "قراءات العدادات", res: "عند التغيّر", days: 14, mb: 1 },
+    { data: "الخزانات (كل دقيقة)", res: "كاملة", days: 7, mb: 2 },
+    { data: "الخزانات (كل 15 دقيقة)", res: "مخفّضة", days: 30, mb: 1 },
+    { data: "سجل حالة المضخات", res: "التغيّرات فقط", days: 14, mb: 1 },
+    { data: "الرسائل الخام الفاشلة", res: "عند الفشل فقط", days: 7, mb: 1 }
+  ],
+  split: [
+    ["المعاملات", "كاملة، وتُحفظ بشكل دائم"],
+    ["إقفال الوردية", "نسخة معتمدة بعد المزامنة"],
+    ["قراءات العدادات", "عند فتح الوردية وإقفالها ونهاية اليوم المحاسبي"],
+    ["مستوى الخزانات", "عند التغيّر أو كل 15 دقيقة، ثم ملخص بالساعة بعد 30 يوماً"],
+    ["التفريغ (التوريد)", "حدث واحد: البداية والنهاية والكمية والمبيعات أثناءه"],
+    ["حالة المضخات", "صف حالي لكل مضخة + سجل التغيّرات"],
+    ["اتصال المحطة", "نبضة كل دقيقة تُحدِّث صفاً واحداً"],
+    ["التنبيهات", "تنبيه مفتوح واحد لكل محطة ونوع وجهاز"],
+    ["الرسائل الخام والسجلات", "لا تُرفع للسحابة"]
+  ],
+  principles: [
+    ["الإرسال عند التغيّر فقط", "تُرسل القراءة فقط إذا تجاوز التغيّر حداً محدداً (Deadband)، مع قراءة تأكيد كل 15 دقيقة."],
+    ["المعالجة داخل المحطة", "كشف التفريغ والإنذارات والتجميع تتم محلياً، والسحابة تستقبل النتيجة كحدث واحد."],
+    ["القيمة الحالية بدل السجل", "صف واحد لكل جهاز يُحدَّث فوق نفسه، مع سجل للتغيّرات في الحالة فقط."],
+    ["خزّن ثم أرسل", "صندوق صادر محلي، ودفعات مضغوطة كل 1 إلى 5 دقائق، ولا حذف قبل تأكيد الاستلام."],
+    ["احتفاظ متدرّج", "تفاصيل كاملة محلياً لأيام، وبيانات كل 15 دقيقة في السحابة لـ 30 يوماً، ثم ملخصات بالساعة واليوم."],
+    ["جداول مدمجة ومفاتيح صحيحة", "معرّفات رقمية، بلا JSON في الجداول المتنامية، وفهارس قليلة، ومفتاح فريد مركّب للمعاملات."]
+  ],
+  phases: [
+    { t: "المرحلة الأولى · فوري", w: "يوم واحد", items: ["إيقاف رفع الرسائل الخام", "قراءات العدادات عند إقفال الوردية فقط", "ترقية مؤقتة إلى Supabase Pro"], res: "توفير تقديري يتجاوز 70%", now: true },
+    { t: "المرحلة الثانية", w: "أسبوع", items: ["حد تغيّر (Deadband) للخزانات", "جدول الحالة الحالية للمضخات", "دمج التنبيهات المتكررة", "مفتاح مركّب للمعاملات"], res: "مزامنة بلا تكرار" },
+    { t: "المرحلة الثالثة", w: "أسبوعان", items: ["خزّن ثم أرسل مع تأكيد الاستلام", "احتفاظ محلي بسقف ثابت", "جداول مدمجة وملخصات", "الأرشيف خارج قاعدة البيانات"], res: "أقل من 1 ميجابايت يومياً" },
+    { t: "المرحلة الرابعة · التحقق", w: "7 أيام من التشغيل الفعلي", items: ["نمو السحابة أقل من 1 ميجابايت يومياً", "صفر معاملات مفقودة", "نجاح اختبار انقطاع 24 ساعة"], res: "تأكيد نجاح المقترح" }
+  ]
+};
+</script>
+<script>
+(function () {
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmtMb = v => v >= 10 || Number.isInteger(v) ? d3.format(",.0f")(v) : d3.format(",.2f")(v);
+  const fmtGb = v => v >= 10 ? d3.format(",.0f")(v) : d3.format(",.1f")(v);
+  const pct = d3.format(".1%");
+  const LRI = "⁦", PDI = "⁩";
+  const iso = s => LRI + s + PDI;
+
+  const before = d3.sum(DATA.items, d => d.before);
+  const after = Math.round(d3.sum(DATA.items, d => d.after) * 100) / 100;
+  DATA.scenarios.find(s => s.id === "plan").mbDay = after;
+  const red = 1 - after / before;
+  const L = DATA.limits;
+  const yearGb = (mb, n) => mb * 365 * n / 1024;
+  const plan15 = yearGb(after, L.stations), cur15 = yearGb(before, L.stations);
+  const devDays = Math.floor((L.freeMb - L.usedMb) / DATA.scenarios.find(s => s.id === "dev").mbDay);
+  const localTotal = d3.sum(DATA.local, d => d.mb);
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const numEl = (t, tag) => el(tag || "span", "num", t);
+
+  const lede = document.getElementById("lede"); lede.textContent = "";
+  [["تطبيق مبدأ الإرسال عند الاستثناء المتّبع في أنظمة SCADA داخل المحطة يمكن أن يخفض نمو السحابة من "], [fmtMb(before) + " MB", 1], [" إلى "], [fmtMb(after) + " MB", 1], [" يومياً لكل محطة. وبذلك تحتاج ‏15 محطة حوالي "], [fmtGb(plan15) + " GB", 1], [" سنوياً بدل "], [fmtGb(cur15) + " GB", 1], ["، بينما تبقى قاعدة بيانات كل محطة ثابتة عند حوالي "], [localTotal + " MB", 1], ["."]]
+    .forEach(([t, b]) => { const e = b ? el("b") : el("span"); if (b) e.append(numEl(t)); else e.textContent = t; lede.append(e); });
+
+  const kpis = [
+    { l: "النمو اليومي حالياً", v: fmtMb(before), u: "ميجابايت", s: "لكل محطة يومياً", c: "bad" },
+    { l: "مع المقترح (تقديري)", v: fmtMb(after), u: "ميجابايت", s: "لكل محطة يومياً", c: "good hero" },
+    { l: "نسبة التخفيض", v: pct(red), u: "", s: "من النمو اليومي في السحابة", c: "good" },
+    { l: "‏15 محطة لمدة سنة", v: fmtGb(plan15), u: "جيجابايت", s: "مقابل " + fmtGb(cur15) + " جيجابايت حالياً", c: "" },
+    { l: "امتلاء الخطة المجانية", v: String(devDays), u: "يوماً", s: "بمعدل نسخة المبرمج الجديدة", c: "bad" },
+    { l: "قاعدة بيانات المحطة", v: String(localTotal), u: "ميجابايت", s: "حجم ثابت · السقف " + L.localCapMb + " ميجابايت", c: "" }
+  ];
+  const kw = document.getElementById("kpis");
+  kpis.forEach(k => {
+    const d = el("div", "card kpi " + k.c), v = el("div", "v");
+    v.append(numEl(k.v)); if (k.u) v.append(el("small", null, k.u));
+    d.append(el("div", "l", k.l), v, el("div", "s", k.s)); kw.append(d);
+  });
+
+  const pw = document.getElementById("principles");
+  DATA.principles.forEach(([t, p], i) => { const d = el("div", "pr"); d.append(el("div", "k", String(i + 1)), el("b", null, t), el("p", null, p)); pw.append(d); });
+
+  const phw = document.getElementById("phases");
+  DATA.phases.forEach(p => {
+    const d = el("div", "ph" + (p.now ? " now" : "")), ul = el("ul");
+    p.items.forEach(x => ul.append(el("li", null, x)));
+    d.append(el("div", "t", p.t), el("div", "w", p.w), ul, el("div", "res", p.res)); phw.append(d);
+  });
+
+  const tl = document.querySelector("#t-local tbody"), mx = d3.max(DATA.local, d => d.mb);
+  DATA.local.forEach(r => {
+    const tr = el("tr");
+    tr.append(el("td", null, r.data), el("td", null, r.res));
+    const td3 = el("td", "n"); td3.append(numEl(String(r.days))); tr.append(td3);
+    const td4 = el("td", "n"), bc = el("div", "bar-cell"), bar = el("i"); bar.style.width = (r.mb / mx * 64) + "px";
+    bc.append(numEl(String(r.mb)), bar); td4.append(bc); tr.append(td4); tl.append(tr);
+  });
+  const tot = el("tr", "total"); tot.append(el("td", null, "الإجمالي"), el("td"), el("td"));
+  const tt = el("td", "n"); tt.append(numEl(String(localTotal))); tot.append(tt); tl.append(tot);
+
+  const ts = document.querySelector("#t-split tbody");
+  DATA.split.forEach(([a, b]) => { const tr = el("tr"), t1 = el("td", null, a); t1.style.fontWeight = 600; tr.append(t1, el("td", null, b)); ts.append(tr); });
+
+  function tip(box, ev, title, rows) {
+    let t = box.querySelector(".tip"); if (!t) { t = el("div", "tip"); box.append(t); }
+    t.textContent = ""; t.append(el("div", "h", title));
+    rows.forEach(([c, n, v]) => { const r = el("div", "r"); if (c) { const s = el("i", "sw"); s.style.background = c; r.append(s); } r.append(el("span", null, n), el("b", null, v)); t.append(r); });
+    t.style.display = "block";
+    const [x, y] = d3.pointer(ev, box); let lx = x - t.offsetWidth - 14; if (lx < 0) lx = x + 14;
+    t.style.left = Math.max(0, Math.min(lx, box.clientWidth - t.offsetWidth)) + "px"; t.style.top = Math.max(0, y - t.offsetHeight - 10) + "px";
+  }
+  const untip = b => { const t = b.querySelector(".tip"); if (t) t.style.display = "none"; };
+  function measure(svg, arr, cls) { const g = svg.append("g"); let w = 0; arr.forEach(s => { w = Math.max(w, g.append("text").attr("class", cls).attr("direction", "rtl").text(s).node().getComputedTextLength()); }); g.remove(); return w; }
+  const ar = sel => sel.attr("direction", "rtl");
+
+  function drawItems() {
+    const box = document.getElementById("c-items"); box.textContent = "";
+    const W = Math.max(box.clientWidth, 280), narrow = W < 520, top = narrow ? 22 : 0, rowH = 64 + top, H = DATA.items.length * rowH;
+    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const label = d => narrow ? d.short : d.item;
+    const lw = narrow ? 0 : Math.min(W * .42, measure(svg, DATA.items.map(label), "lbl")) + 16;
+    const rw = measure(svg, ["−99.9%"], "lbl-b") + 14;
+    const x0 = W - lw, x1 = rw + measure(svg, ["28"], "lbl") + 10;
+    const max = d3.max(DATA.items, d => d.before), sx = v => Math.max(2, (x0 - x1) * v / max), bh = 15;
+    const G = css("--grey"), A = css("--accent");
+    DATA.items.forEach((d, i) => {
+      const y = i * rowH + 6 + top, g = svg.append("g");
+      ar(g.append("text").attr("class", "lbl").attr("x", W).attr("text-anchor", "start").attr("y", narrow ? y - 8 : y + bh + 4).attr("font-weight", narrow ? 600 : 400)).text(label(d));
+      g.append("rect").attr("x", x0 - sx(d.before)).attr("y", y).attr("width", sx(d.before)).attr("height", bh).attr("rx", 4).attr("fill", G);
+      g.append("text").attr("class", "lbl").attr("x", x0 - sx(d.before) - 6).attr("text-anchor", "end").attr("y", y + bh / 2).attr("dy", ".35em").text(fmtMb(d.before));
+      g.append("rect").attr("x", x0 - sx(d.after)).attr("y", y + bh + 5).attr("width", sx(d.after)).attr("height", bh).attr("rx", 4).attr("fill", A);
+      g.append("text").attr("class", "lbl-b").attr("x", x0 - sx(d.after) - 6).attr("text-anchor", "end").attr("y", y + bh * 1.5 + 5).attr("dy", ".35em").text(fmtMb(d.after));
+      g.append("text").attr("class", "lbl-b").attr("x", 0).attr("y", y + bh + 4).attr("fill", css("--good")).text("−" + pct(1 - d.after / d.before));
+      g.append("rect").attr("x", 0).attr("y", y - 6 - top).attr("width", W).attr("height", rowH).attr("fill", "transparent")
+        .on("mousemove", ev => tip(box, ev, d.item, [[G, "الوضع الحالي", fmtMb(d.before) + " MB/day"], [A, "مع المقترح", fmtMb(d.after) + " MB/day"], [null, "التخفيض", pct(1 - d.after / d.before)]]))
+        .on("mouseleave", () => untip(box));
+    });
+    svg.append("line").attr("x1", x0).attr("x2", x0).attr("y1", 0).attr("y2", H).attr("stroke", css("--line"));
+  }
+
+  function drawScen() {
+    const box = document.getElementById("c-scen"); box.textContent = "";
+    const W = Math.max(box.clientWidth, 280), H = 240, mt = 28, mb = 50;
+    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const x = d3.scaleBand(DATA.scenarios.map(d => d.id), [W, 0]).paddingInner(.35).paddingOuter(.15);
+    const y = d3.scaleLinear([0, d3.max(DATA.scenarios, d => d.mbDay)], [H - mb, mt]);
+    const bw = Math.min(64, x.bandwidth());
+    svg.append("line").attr("x1", 0).attr("x2", W).attr("y1", y(0)).attr("y2", y(0)).attr("stroke", css("--line"));
+    DATA.scenarios.forEach(d => {
+      const cx = x(d.id) + x.bandwidth() / 2, p = d.id === "plan";
+      const fill = p ? css("--accent") : d.id === "dev" ? css("--grey-2") : css("--grey");
+      const tp = Math.min(y(d.mbDay), y(0) - 3);
+      svg.append("rect").attr("x", cx - bw / 2).attr("y", tp).attr("width", bw).attr("height", y(0) - tp).attr("rx", 5).attr("fill", fill);
+      svg.append("text").attr("class", "lbl-b").attr("x", cx).attr("y", tp - 8).attr("text-anchor", "middle").attr("fill", p ? css("--good") : css("--ink")).text(fmtMb(d.mbDay) + " MB");
+      ar(svg.append("text").attr("class", "lbl").attr("x", cx).attr("y", H - mb + 22).attr("text-anchor", "middle").attr("font-weight", 600)).text(d.name);
+      if (W >= 440) ar(svg.append("text").attr("class", "tick").attr("x", cx).attr("y", H - mb + 40).attr("text-anchor", "middle")).text(d.note);
+      svg.append("rect").attr("x", x(d.id)).attr("y", mt).attr("width", x.bandwidth()).attr("height", H - mt - mb).attr("fill", "transparent")
+        .on("mousemove", ev => tip(box, ev, d.name, [[null, "يومياً", fmtMb(d.mbDay) + " MB"], [null, "محطة واحدة لمدة سنة", fmtGb(yearGb(d.mbDay, 1)) + " GB"]]))
+        .on("mouseleave", () => untip(box));
+    });
+  }
+
+  function drawProj() {
+    const box = document.getElementById("c-proj"); box.textContent = "";
+    const W = Math.max(box.clientWidth, 280), H = 330, mt = 18, mb = 44;
+    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const series = DATA.scenarios.map(s => ({ s, pts: d3.range(1, L.stations + 1).map(n => ({ n, gb: yearGb(s.mbDay, n) })) }));
+    const narrow = W < 560;
+    const ends = series.map(r => narrow ? fmtGb(r.pts.at(-1).gb) + " GB" : r.s.name + " · " + iso(fmtGb(r.pts.at(-1).gb) + " GB"));
+    const lw = measure(svg, ends, "lbl-b") + 14;
+    const yT = [0.1, 1, 10, 100], tw = measure(svg, yT.map(v => v + " GB"), "tick") + 10;
+    const x = d3.scaleLinear([1, L.stations], [tw, W - lw]), y = d3.scaleLog([0.1, 400], [H - mb, mt]);
+    yT.forEach(v => {
+      svg.append("line").attr("x1", tw).attr("x2", W - lw).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", css("--grid"));
+      svg.append("text").attr("class", "tick").attr("x", tw - 8).attr("y", y(v)).attr("dy", ".32em").attr("text-anchor", "end").text(v + " GB");
+    });
+    [1, 5, 10, 15].forEach(v => svg.append("text").attr("class", "tick").attr("x", x(v)).attr("y", H - mb + 20).attr("text-anchor", "middle").text(v));
+    ar(svg.append("text").attr("class", "tick").attr("x", (tw + W - lw) / 2).attr("y", H - 4).attr("text-anchor", "middle")).text("عدد المحطات");
+    svg.append("line").attr("x1", tw).attr("x2", W - lw).attr("y1", y(L.proGb)).attr("y2", y(L.proGb)).attr("stroke", css("--ref")).attr("stroke-dasharray", "5 4");
+    ar(svg.append("text").attr("class", "tick").attr("x", W - lw - 4).attr("text-anchor", "start").attr("y", y(L.proGb) - 8)).text("السعة المشمولة في باقة " + iso("Supabase Pro") + " (" + iso(L.proGb + " GB") + ")");
+    const col = id => id === "plan" ? css("--accent") : id === "dev" ? css("--grey-2") : css("--grey");
+    const line = d3.line().x(d => x(d.n)).y(d => y(Math.max(.1, d.gb)));
+    series.forEach(r => {
+      svg.append("path").attr("d", line(r.pts)).attr("fill", "none").attr("stroke", col(r.s.id)).attr("stroke-width", r.s.id === "plan" ? 3 : 2).attr("stroke-linecap", "round").attr("stroke-linejoin", "round");
+      const e = r.pts.at(-1); svg.append("circle").attr("cx", x(e.n)).attr("cy", y(e.gb)).attr("r", 4).attr("fill", col(r.s.id));
+    });
+    let prev = -1e9;
+    series.map((r, i) => ({ r, i, y: y(r.pts.at(-1).gb) })).sort((a, b) => a.y - b.y).forEach(o => {
+      const yy = Math.max(o.y, prev + 20); prev = yy;
+      ar(svg.append("text").attr("class", "lbl-b").attr("x", W).attr("text-anchor", "start").attr("y", yy).attr("dy", ".35em").attr("fill", o.r.s.id === "plan" ? css("--ink") : css("--muted"))).text(ends.at(o.i));
+    });
+    const hl = svg.append("line").attr("y1", mt).attr("y2", H - mb).attr("stroke", css("--line")).attr("opacity", 0);
+    svg.append("rect").attr("x", tw).attr("y", mt).attr("width", W - lw - tw).attr("height", H - mt - mb).attr("fill", "transparent")
+      .on("mousemove", ev => {
+        const [px] = d3.pointer(ev, svg.node());
+        const n = Math.max(1, Math.min(L.stations, Math.round(x.invert(px))));
+        hl.attr("x1", x(n)).attr("x2", x(n)).attr("opacity", 1);
+        tip(box, ev, n + " محطة · سنوياً", series.map(r => [col(r.s.id), r.s.name, fmtGb(r.pts.at(n - 1).gb) + " GB"]));
+      })
+      .on("mouseleave", () => { untip(box); hl.attr("opacity", 0); });
+  }
+
+  const draw = () => { drawItems(); drawScen(); drawProj(); };
+  draw();
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>
+</body>
+</html>
