@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FuelLeap Storage Optimization</title>
+<meta name="description" content="Cloud and local storage optimization plan for the FuelLeap fuel station monitoring platform.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F6F8; --panel: #FFFFFF; --ink: #142230; --muted: #5B6B7A; --line: #DDE3E9; --grid: #E8ECF0;
+  --navy: #12324F; --navy-2: #1B4467; --band-ink: #FFFFFF; --band-muted: #B4C8DB;
+  --accent: #1F6FD1; --accent-soft: rgba(31,111,209,.12);
+  --grey: #A3AEB9; --grey-2: #CDD4DB; --good: #1E8E5A; --bad: #C0392B; --ref: #5B6B7A;
+  --shadow: 0 1px 2px rgba(20,34,48,.05), 0 4px 16px rgba(20,34,48,.05);
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E151C; --panel: #151F29; --ink: #E7EDF3; --muted: #93A3B3; --line: #26333F; --grid: #1F2B36;
+    --navy: #0B2236; --navy-2: #12324F; --band-muted: #8FA9C2;
+    --accent: #5EA0F0; --accent-soft: rgba(94,160,240,.16);
+    --grey: #6B7A89; --grey-2: #3C4955; --good: #4CC38A; --bad: #F07167; --ref: #93A3B3;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+header.band { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%); color: var(--band-ink); }
+header.band .wrap { padding-top: 40px; padding-bottom: 36px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--band-muted); font-weight: 600; }
+h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 10px 0 12px; letter-spacing: -.01em; }
+.lede { max-width: 820px; color: #DCE6F0; font-size: 16px; margin: 0; }
+.lede b { color: #fff; font-weight: 600; }
+.meta { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12.5px; color: var(--band-muted); }
+
+main .wrap { padding-top: 28px; padding-bottom: 48px; display: flex; flex-direction: column; gap: 22px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr)); gap: 14px; margin-top: -58px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; box-shadow: var(--shadow); min-width: 0; }
+.kpi .l { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.kpi .v { font-family: "Source Serif 4", Georgia, serif; font-size: 34px; font-weight: 600; line-height: 1.1; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.kpi .v small { font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.kpi .s { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.kpi.bad .v { color: var(--bad); } .kpi.good .v { color: var(--good); }
+.kpi.hero { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 22px; }
+h2 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -.005em; }
+.note { font-size: 13px; color: var(--muted); margin: 4px 0 16px; }
+.section-title { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 10px 0 -8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.chart { position: relative; }
+svg text { font-family: Inter, system-ui, sans-serif; }
+.tick { font-size: 11.5px; fill: var(--muted); }
+.lbl { font-size: 12.5px; fill: var(--ink); }
+.lbl-b { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
+.tip { position: absolute; pointer-events: none; display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.14); padding: 8px 10px; font-size: 12.5px; white-space: nowrap; z-index: 5; }
+.tip .h { color: var(--muted); margin-bottom: 4px; }
+.tip .r { display: flex; align-items: center; gap: 8px; }
+.tip .r b { margin-left: auto; padding-left: 14px; font-variant-numeric: tabular-nums; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.tw { overflow-x: auto; }
+.bar-cell { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.bar-cell i { display: block; height: 8px; border-radius: 4px; background: var(--accent); opacity: .6; }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.yes { color: var(--good); background: color-mix(in srgb, var(--good) 13%, transparent); }
+.pill.cond { color: #B7791F; background: rgba(183,121,31,.13); }
+.pill.no { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+tr.rec td { background: var(--accent-soft); }
+
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.pr { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--panel); }
+.pr .k { font-size: 11.5px; font-weight: 700; color: var(--accent); letter-spacing: .06em; }
+.pr b { display: block; font-size: 14.5px; margin: 4px 0 4px; }
+.pr p { margin: 0; font-size: 13px; color: var(--muted); }
+
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 14px; position: relative; }
+.ph { border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; }
+.ph.now { border: 2px solid var(--accent); background: var(--accent-soft); }
+.ph .t { font-weight: 600; font-size: 14.5px; }
+.ph .w { font-size: 12.5px; color: var(--muted); margin: 2px 0 10px; }
+.ph ul { margin: 0 0 12px; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+.ph .res { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+
+footer { color: var(--muted); font-size: 12px; }
+footer .wrap { padding-bottom: 32px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  header.band .wrap { padding-top: 28px; padding-bottom: 70px; }
+  .kpi .v { font-size: 26px; }
+  .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { padding: 16px; }
+}
+@media print {
+  body { background: #fff; }
+  .card, .pr, .ph { break-inside: avoid; box-shadow: none; }
+  .kpis { margin-top: 18px; }
+}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="wrap">
+    <div class="eyebrow">FuelLeap · Data storage optimization proposal</div>
+    <h1>A proposal to cut cloud storage growth by more than 95% without losing a feature</h1>
+    <p class="lede" id="lede">Loading…</p>
+    <div class="meta"><span>Per-station estimates based on live operating figures</span><span>Cloud: Supabase PostgreSQL</span><span>Station: SQLite</span><span>October 2026</span></div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <section class="kpis" id="kpis"></section>
+
+    <div class="grid2">
+      <section class="card">
+        <h2>Every data type could drop by more than 98%</h2>
+        <p class="note">Daily growth per station in MB, before and with the proposal.</p>
+        <div class="legend"><span><i class="sw" style="background:var(--grey)"></i>Before</span><span><i class="sw" style="background:var(--accent)"></i>With the proposal</span></div>
+        <div class="chart" id="c-items"></div>
+      </section>
+      <section class="card">
+        <h2>The developer's fix is step one; the proposal goes further</h2>
+        <p class="note">Daily cloud growth per station in MB at each stage.</p>
+        <div class="chart" id="c-scen"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>At 15 stations, only the proposal stays inside 8 GB</h2>
+      <p class="note">Annual cloud volume by number of stations, log scale. Dashed line: storage included in Supabase Pro.</p>
+      <div class="legend"><span><i class="sw" style="background:var(--grey)"></i>Current</span><span><i class="sw" style="background:var(--grey-2)"></i>After developer's fix</span><span><i class="sw" style="background:var(--accent)"></i>With the proposal</span></div>
+      <div class="chart" id="c-proj"></div>
+    </section>
+
+    <div class="section-title">How it works</div>
+    <section class="card">
+      <h2>Six principles from SCADA practice</h2>
+      <p class="note">Applied to every data type the system handles.</p>
+      <div class="principles" id="principles"></div>
+    </section>
+
+    <div class="grid2">
+      <section class="card">
+        <h2>Station database: a rolling window with a fixed size</h2>
+        <p class="note">Local retention per data type. Nothing is deleted before the cloud acknowledges it; hard cap 200 MB.</p>
+        <div class="tw"><table id="t-local"><thead><tr><th>Data</th><th>Resolution</th><th class="n">Retention (days)</th><th class="n">Est. size (MB)</th></tr></thead><tbody></tbody></table></div>
+      </section>
+      <section class="card">
+        <h2>What goes where</h2>
+        <p class="note">The station keeps full detail briefly; the cloud receives results and changes only.</p>
+        <div class="tw"><table id="t-split"><thead><tr><th>Data</th><th>Cloud receives</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </div>
+
+    <div class="section-title">Delivery</div>
+    <section class="card">
+      <h2>Over 70% of the saving could come on day one</h2>
+      <p class="note">Suggested path: measure table sizes before starting, then verify the results over 7 days of live operation.</p>
+      <div class="phases" id="phases"></div>
+    </section>
+
+  </div>
+</main>
+
+<footer><div class="wrap"><span>Before figures: developer's measurements from live operation. After figures: estimates (180 transactions/day, ~24 nozzles, 4 tanks per station).</span><span>FuelLeap · Storage optimization proposal · Oct 2026</span></div></footer>
+
+<script src="d3.min.js"></script>
+<script>
+const DATA = {
+  items: [
+    { item: "Raw messages, indexes & operational", before: 28, after: 0.4 },
+    { item: "Totalizer readings", before: 10, after: 0.01 },
+    { item: "Tank readings", before: 9, after: 0.1 }
+  ],
+  scenarios: [
+    { id: "current", name: "Current", mbDay: 47, note: "before any optimization" },
+    { id: "dev", name: "Developer's fix", mbDay: 12.5, note: "midpoint of 10–15" },
+    { id: "plan", name: "Proposal", mbDay: null, note: "sum of items after" }
+  ],
+  limits: { usedMb: 328, freeMb: 500, proGb: 8, localCapMb: 200, stations: 15 },
+  local: [
+    { data: "Transactions", res: "Full", days: 90, mb: 3 },
+    { data: "Shift closings", res: "Full", days: 90, mb: 1 },
+    { data: "Totalizer readings", res: "On change", days: 14, mb: 1 },
+    { data: "Tank levels (1-min)", res: "Full", days: 7, mb: 2 },
+    { data: "Tank levels (15-min)", res: "Reduced", days: 30, mb: 1 },
+    { data: "Pump status log", res: "Changes only", days: 14, mb: 1 },
+    { data: "Failed raw messages", res: "On failure only", days: 7, mb: 1 }
+  ],
+  split: [
+    ["Transactions", "Full detail, kept permanently"],
+    ["Shift closing", "Approved copy after sync"],
+    ["Totalizer", "Shift open/close + end of accounting day"],
+    ["Tank levels", "On change or every 15 min; hourly after 30 days"],
+    ["Deliveries", "One event: start, end, quantity, sales during"],
+    ["Pump status", "One current row per pump + change log"],
+    ["Connectivity", "Heartbeat updating one row per minute"],
+    ["Alerts", "One open alert per station/type/device"],
+    ["Raw messages & logs", "Not uploaded"]
+  ],
+  principles: [
+    ["Report by exception", "Send a reading only when it changes past a deadband, with a confirmation reading every 15 minutes."],
+    ["Edge processing", "Delivery detection, alarms and aggregation run at the station; the cloud gets one result event."],
+    ["Current value, not history", "One row per device updated in place, plus a log of state changes only."],
+    ["Store and forward", "Local outbox, compressed batches every 1–5 minutes, delete only after the cloud acknowledges."],
+    ["Tiered retention", "Full detail locally for days, 15-minute data in the cloud for 30 days, then hourly and daily summaries."],
+    ["Lean tables, correct keys", "Numeric IDs, no JSON in growing tables, few indexes, and a composite unique key for transactions."]
+  ],
+  phases: [
+    { t: "Phase 1 · Immediate", w: "1 day", items: ["Stop uploading raw messages", "Totalizer at shift close only", "Temporary Supabase Pro upgrade"], res: "Est. over 70% saved", now: true },
+    { t: "Phase 2", w: "1 week", items: ["Tank deadband", "Pump current-state table", "Merge repeated alerts", "Composite transaction key"], res: "Duplicate-free sync" },
+    { t: "Phase 3", w: "2 weeks", items: ["Store and forward with ACK", "Capped local retention", "Lean tables and rollups", "Archive outside the database"], res: "Under 1 MB per day" },
+    { t: "Phase 4 · Verify", w: "7 days of live data", items: ["Cloud growth under 1 MB/day", "Zero lost transactions", "24-hour outage test passes"], res: "Proposal confirmed" }
+  ]
+};
+</script>
+<script>
+(function () {
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmtMb = v => v >= 10 || Number.isInteger(v) ? d3.format(",.0f")(v) : d3.format(",.2f")(v);
+  const fmtGb = v => v >= 10 ? d3.format(",.0f")(v) : d3.format(",.1f")(v);
+  const pct = d3.format(".1%");
+
+  const before = d3.sum(DATA.items, d => d.before);
+  const after = Math.round(d3.sum(DATA.items, d => d.after) * 100) / 100;
+  DATA.scenarios.find(s => s.id === "plan").mbDay = after;
+  const red = 1 - after / before;
+  const L = DATA.limits;
+  const yearGb = (mb, n) => mb * 365 * n / 1024;
+  const plan15 = yearGb(after, L.stations), cur15 = yearGb(before, L.stations);
+  const devDays = Math.floor((L.freeMb - L.usedMb) / DATA.scenarios.find(s => s.id === "dev").mbDay);
+  const localTotal = d3.sum(DATA.local, d => d.mb);
+
+  const lede = document.getElementById("lede");
+  lede.textContent = "";
+  const parts = [["Applying SCADA-style reporting at the station could cut cloud growth from "], [fmtMb(before) + " MB", 1], [" to "], [fmtMb(after) + " MB", 1], [" per station per day. Fifteen stations would need an estimated "], [fmtGb(plan15) + " GB", 1], [" a year instead of "], [fmtGb(cur15) + " GB", 1], [", while each station's local database could stay flat at around "], [localTotal + " MB", 1], ["."]];
+  parts.forEach(([t, b]) => { const e = document.createElement(b ? "b" : "span"); e.textContent = t; lede.append(e); });
+
+  const kpis = [
+    { l: "Daily growth today", v: fmtMb(before), u: "MB", s: "per station per day", c: "bad" },
+    { l: "With the proposal (est.)", v: fmtMb(after), u: "MB", s: "per station per day", c: "good hero" },
+    { l: "Reduction", v: pct(red), u: "", s: "of daily cloud growth", c: "good" },
+    { l: "15 stations, one year", v: fmtGb(plan15), u: "GB", s: "vs " + fmtGb(cur15) + " GB today", c: "" },
+    { l: "Free plan full in", v: String(devDays), u: "days", s: "at the developer's new rate", c: "bad" },
+    { l: "Station database", v: String(localTotal), u: "MB", s: "steady state · cap " + L.localCapMb + " MB", c: "" }
+  ];
+  const kw = document.getElementById("kpis");
+  kpis.forEach(k => {
+    const d = document.createElement("div"); d.className = "card kpi " + k.c;
+    const l = document.createElement("div"); l.className = "l"; l.textContent = k.l;
+    const v = document.createElement("div"); v.className = "v"; v.textContent = k.v;
+    if (k.u) { const u = document.createElement("small"); u.textContent = k.u; v.append(u); }
+    const s = document.createElement("div"); s.className = "s"; s.textContent = k.s;
+    d.append(l, v, s); kw.append(d);
+  });
+
+  const pw = document.getElementById("principles");
+  DATA.principles.forEach(([t, p], i) => {
+    const d = document.createElement("div"); d.className = "pr";
+    const k = document.createElement("div"); k.className = "k"; k.textContent = String(i + 1).padStart(2, "0");
+    const b = document.createElement("b"); b.textContent = t;
+    const q = document.createElement("p"); q.textContent = p;
+    d.append(k, b, q); pw.append(d);
+  });
+
+  const phw = document.getElementById("phases");
+  DATA.phases.forEach(p => {
+    const d = document.createElement("div"); d.className = "ph" + (p.now ? " now" : "");
+    const t = document.createElement("div"); t.className = "t"; t.textContent = p.t;
+    const w = document.createElement("div"); w.className = "w"; w.textContent = p.w;
+    const ul = document.createElement("ul"); p.items.forEach(x => { const li = document.createElement("li"); li.textContent = x; ul.append(li); });
+    const r = document.createElement("div"); r.className = "res"; r.textContent = p.res;
+    d.append(t, w, ul, r); phw.append(d);
+  });
+
+  const tl = document.querySelector("#t-local tbody"), mx = d3.max(DATA.local, d => d.mb);
+  DATA.local.forEach(r => {
+    const tr = document.createElement("tr");
+    [r.data, r.res].forEach(x => { const td = document.createElement("td"); td.textContent = x; tr.append(td); });
+    const td3 = document.createElement("td"); td3.className = "n"; td3.textContent = r.days; tr.append(td3);
+    const td4 = document.createElement("td"); td4.className = "n";
+    const bc = document.createElement("div"); bc.className = "bar-cell";
+    const bar = document.createElement("i"); bar.style.width = (r.mb / mx * 64) + "px";
+    const sp = document.createElement("span"); sp.className = "num"; sp.textContent = r.mb;
+    bc.append(bar, sp); td4.append(bc); tr.append(td4); tl.append(tr);
+  });
+  const tfoot = document.createElement("tr");
+  ["Total", "", ""].forEach((x, i) => { const td = document.createElement("td"); td.textContent = x; if (i === 0) td.style.fontWeight = 600; tfoot.append(td); });
+  const tt = document.createElement("td"); tt.className = "n"; tt.style.fontWeight = 600; tt.textContent = localTotal; tfoot.append(tt); tl.append(tfoot);
+
+  const ts = document.querySelector("#t-split tbody");
+  DATA.split.forEach(([a, b]) => { const tr = document.createElement("tr"); [a, b].forEach((x, i) => { const td = document.createElement("td"); td.textContent = x; if (!i) td.style.fontWeight = 500; tr.append(td); }); ts.append(tr); });
+
+  function tip(el, ev, title, rows) {
+    let t = el.querySelector(".tip"); if (!t) { t = document.createElement("div"); t.className = "tip"; el.append(t); }
+    t.textContent = "";
+    const h = document.createElement("div"); h.className = "h"; h.textContent = title; t.append(h);
+    rows.forEach(([c, n, v]) => { const r = document.createElement("div"); r.className = "r"; if (c) { const s = document.createElement("i"); s.className = "sw"; s.style.background = c; r.append(s); } const a = document.createElement("span"); a.textContent = n; const b = document.createElement("b"); b.textContent = v; r.append(a, b); t.append(r); });
+    t.style.display = "block";
+    const [x, y] = d3.pointer(ev, el); let lx = x + 14; if (lx + t.offsetWidth > el.clientWidth) lx = x - t.offsetWidth - 14;
+    t.style.left = Math.max(0, lx) + "px"; t.style.top = Math.max(0, y - t.offsetHeight - 10) + "px";
+  }
+  const untip = el => { const t = el.querySelector(".tip"); if (t) t.style.display = "none"; };
+  function measure(svg, arr, cls) { const g = svg.append("g"); let w = 0; arr.forEach(s => { w = Math.max(w, g.append("text").attr("class", cls).text(s).node().getComputedTextLength()); }); g.remove(); return w; }
+
+  function drawItems() {
+    const el = document.getElementById("c-items"); el.textContent = "";
+    const W = Math.max(el.clientWidth, 280), narrow = W < 520, top = narrow ? 20 : 0, rowH = 64 + top, H = DATA.items.length * rowH;
+    const svg = d3.select(el).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const lw = narrow ? 0 : Math.min(W * .42, measure(svg, DATA.items.map(d => d.item), "lbl")) + 14;
+    const rw = measure(svg, ["−99.9%"], "lbl-b") + 12;
+    const x0 = lw, x1 = W - rw - measure(svg, ["28"], "lbl") - 10;
+    const max = d3.max(DATA.items, d => d.before), sx = v => Math.max(2, (x1 - x0) * v / max), bh = 15;
+    const G = css("--grey"), A = css("--accent");
+    DATA.items.forEach((d, i) => {
+      const y = i * rowH + 6 + top, g = svg.append("g");
+      g.append("text").attr("class", "lbl").attr("x", 0).attr("y", narrow ? y - 8 : y + bh + 4).attr("font-weight", narrow ? 500 : 400).text(d.item);
+      g.append("rect").attr("x", x0).attr("y", y).attr("width", sx(d.before)).attr("height", bh).attr("rx", 4).attr("fill", G);
+      g.append("text").attr("class", "lbl").attr("x", x0 + sx(d.before) + 6).attr("y", y + bh / 2).attr("dy", ".35em").text(fmtMb(d.before));
+      g.append("rect").attr("x", x0).attr("y", y + bh + 5).attr("width", sx(d.after)).attr("height", bh).attr("rx", 4).attr("fill", A);
+      g.append("text").attr("class", "lbl-b").attr("x", x0 + sx(d.after) + 6).attr("y", y + bh * 1.5 + 5).attr("dy", ".35em").text(fmtMb(d.after));
+      g.append("text").attr("class", "lbl-b").attr("x", W).attr("text-anchor", "end").attr("y", y + bh + 4).attr("fill", css("--good")).text("−" + pct(1 - d.after / d.before));
+      g.append("rect").attr("x", 0).attr("y", y - 6 - top).attr("width", W).attr("height", rowH).attr("fill", "transparent")
+        .on("mousemove", ev => tip(el, ev, d.item, [[G, "Before", fmtMb(d.before) + " MB/day"], [A, "With proposal", fmtMb(d.after) + " MB/day"], [null, "Reduction", pct(1 - d.after / d.before)]]))
+        .on("mouseleave", () => untip(el));
+    });
+    svg.append("line").attr("x1", x0).attr("x2", x0).attr("y1", 0).attr("y2", H).attr("stroke", css("--line"));
+  }
+
+  function drawScen() {
+    const el = document.getElementById("c-scen"); el.textContent = "";
+    const W = Math.max(el.clientWidth, 300), H = 236, mt = 26, mb = 46;
+    const svg = d3.select(el).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const x = d3.scaleBand(DATA.scenarios.map(d => d.id), [0, W]).paddingInner(.35).paddingOuter(.15);
+    const y = d3.scaleLinear([0, d3.max(DATA.scenarios, d => d.mbDay)], [H - mb, mt]);
+    const bw = Math.min(64, x.bandwidth());
+    svg.append("line").attr("x1", 0).attr("x2", W).attr("y1", y(0)).attr("y2", y(0)).attr("stroke", css("--line"));
+    DATA.scenarios.forEach(d => {
+      const cx = x(d.id) + x.bandwidth() / 2, p = d.id === "plan";
+      const fill = p ? css("--accent") : d.id === "dev" ? css("--grey-2") : css("--grey");
+      const top = Math.min(y(d.mbDay), y(0) - 3);
+      svg.append("rect").attr("x", cx - bw / 2).attr("y", top).attr("width", bw).attr("height", y(0) - top).attr("rx", 5).attr("fill", fill);
+      svg.append("text").attr("class", "lbl-b").attr("x", cx).attr("y", top - 8).attr("text-anchor", "middle").attr("fill", p ? css("--good") : css("--ink")).text(fmtMb(d.mbDay) + " MB");
+      svg.append("text").attr("class", "lbl").attr("x", cx).attr("y", H - mb + 20).attr("text-anchor", "middle").attr("font-weight", 500).text(d.name);
+      if (W >= 440) svg.append("text").attr("class", "tick").attr("x", cx).attr("y", H - mb + 36).attr("text-anchor", "middle").text(d.note);
+      svg.append("rect").attr("x", x(d.id)).attr("y", mt).attr("width", x.bandwidth()).attr("height", H - mt - mb).attr("fill", "transparent")
+        .on("mousemove", ev => tip(el, ev, d.name, [[null, "Per day", fmtMb(d.mbDay) + " MB"], [null, "One station, one year", fmtGb(yearGb(d.mbDay, 1)) + " GB"]]))
+        .on("mouseleave", () => untip(el));
+    });
+  }
+
+  function drawProj() {
+    const el = document.getElementById("c-proj"); el.textContent = "";
+    const W = Math.max(el.clientWidth, 300), H = 320, mt = 16, mb = 40;
+    const svg = d3.select(el).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const series = DATA.scenarios.map(s => ({ s, pts: d3.range(1, L.stations + 1).map(n => ({ n, gb: yearGb(s.mbDay, n) })) }));
+    const narrow = W < 560;
+    const ends = series.map(r => (narrow ? "" : r.s.name + " · ") + fmtGb(r.pts.at(-1).gb) + " GB");
+    const lw = measure(svg, ends, "lbl-b") + 14;
+    const yT = [0.1, 1, 10, 100], tw = measure(svg, yT.map(v => v + " GB"), "tick") + 8;
+    const x = d3.scaleLinear([1, L.stations], [tw, W - lw]), y = d3.scaleLog([0.1, 400], [H - mb, mt]);
+    yT.forEach(v => {
+      svg.append("line").attr("x1", tw).attr("x2", W - lw).attr("y1", y(v)).attr("y2", y(v)).attr("stroke", css("--grid"));
+      svg.append("text").attr("class", "tick").attr("x", tw - 8).attr("y", y(v)).attr("dy", ".32em").attr("text-anchor", "end").text(v + " GB");
+    });
+    [1, 5, 10, 15].forEach(v => svg.append("text").attr("class", "tick").attr("x", x(v)).attr("y", H - mb + 18).attr("text-anchor", "middle").text(v));
+    svg.append("text").attr("class", "tick").attr("x", (tw + W - lw) / 2).attr("y", H - 4).attr("text-anchor", "middle").text("Number of stations");
+    svg.append("line").attr("x1", tw).attr("x2", W - lw).attr("y1", y(L.proGb)).attr("y2", y(L.proGb)).attr("stroke", css("--ref")).attr("stroke-dasharray", "5 4");
+    svg.append("text").attr("class", "tick").attr("x", tw + 6).attr("y", y(L.proGb) - 7).text("Supabase Pro includes " + L.proGb + " GB");
+    const col = id => id === "plan" ? css("--accent") : id === "dev" ? css("--grey-2") : css("--grey");
+    const line = d3.line().x(d => x(d.n)).y(d => y(Math.max(.1, d.gb)));
+    series.forEach(r => {
+      svg.append("path").attr("d", line(r.pts)).attr("fill", "none").attr("stroke", col(r.s.id)).attr("stroke-width", r.s.id === "plan" ? 3 : 2).attr("stroke-linecap", "round").attr("stroke-linejoin", "round");
+      const e = r.pts.at(-1); svg.append("circle").attr("cx", x(e.n)).attr("cy", y(e.gb)).attr("r", 4).attr("fill", col(r.s.id));
+    });
+    let prev = -1e9;
+    series.map((r, i) => ({ r, i, y: y(r.pts.at(-1).gb) })).sort((a, b) => a.y - b.y).forEach(o => {
+      const yy = Math.max(o.y, prev + 18); prev = yy;
+      svg.append("text").attr("class", "lbl-b").attr("x", W - lw + 10).attr("y", yy).attr("dy", ".35em").attr("fill", o.r.s.id === "plan" ? css("--ink") : css("--muted")).text(ends.at(o.i));
+    });
+    const hl = svg.append("line").attr("y1", mt).attr("y2", H - mb).attr("stroke", css("--line")).attr("opacity", 0);
+    svg.append("rect").attr("x", tw).attr("y", mt).attr("width", W - lw - tw).attr("height", H - mt - mb).attr("fill", "transparent")
+      .on("mousemove", ev => {
+        const vb = svg.node().getBoundingClientRect().width / W;
+        const [px] = d3.pointer(ev, svg.node());
+        const n = Math.max(1, Math.min(L.stations, Math.round(x.invert(px))));
+        hl.attr("x1", x(n)).attr("x2", x(n)).attr("opacity", 1);
+        tip(el, ev, n + (n === 1 ? " station" : " stations") + " · per year", series.map(r => [col(r.s.id), r.s.name, fmtGb(r.pts.at(n - 1).gb) + " GB"]));
+      })
+      .on("mouseleave", () => { untip(el); hl.attr("opacity", 0); });
+  }
+
+  const draw = () => { drawItems(); drawScen(); drawProj(); };
+  draw();
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+})();
+</script>
+</body>
+</html>
